@@ -462,6 +462,9 @@ int ticoInput() {
   do {
     if (overflow) inputError(OVFL);
     if (nonNumeric) inputError(NOT_NUM);
+    
+    overflow = false;
+    nonNumeric = false;
 
     printf("  %d > ", iptCount); 
     nonNumeric |= !scanf("%d", &n);
