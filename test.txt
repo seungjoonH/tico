@@ -1,0 +1,16 @@
+// a: ADD 1 2 3      // error: Non-numeric address
+// -1: ADD 1 2 3     // error: Address overflow
+// 0 ADD 1 2 3       // error: Wrong input format
+// 1: AD 1 2 3       // error: Operator undefined
+// 2: ADD 1 2        // error: Unmatched number of operand
+// 3: ADD 1 2 3 3    // error: Unmatched number of operand
+// 4: TERM 1         // error: Unmatched number of operand
+// 5: LOAD 256 2     // error: Operand overflow
+// 6: LOAD 1 -1      // error: Operand overflow
+// 7: ASSIGN 1 2     // error: Wrong input format
+// 8: ASSIGN 1 "2    // error: Wrong input format
+// 9: ASSIGN 1 "128" // error: Constant overflow
+// 10: ASSIGN 1 "a" // error: Constant overflow
+// 11: 3             // error: Wrong input format
+// 12: "3            // error: Wrong input format
+// 13: "a"           // error: Non-numeric value
