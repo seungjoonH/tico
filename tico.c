@@ -344,6 +344,8 @@ void saveToMem(int addr, char *str, char *line) {
   bool isTerm = !strcmp(str, "TERM");
   bool isAssign = !strcmp(str, "ASSIGN");
 
+  // printf("<%d>\n", instStrs[memory[addr].inst.operator]);
+
   // operator 뒤 공백이 있음
   if (hasSpace) {
     c += 1 + strlen(typeStr);
@@ -395,10 +397,11 @@ void saveToMem(int addr, char *str, char *line) {
     memory[addr].inst.operator = curType;
   }
   // operator 뒤 공백이 없음
-  else if (!isTerm) {
+  else {
+    if (isTerm) { memory[addr].inst.operator = TERM; return; }
+    
     int n, err;
     err = ctoi(str, &n, MIN_UINT, MAX_UINT);
-    
     switch (err) {
       case 4: numError(NUM_VAL, OVFL, line); break;
       case 3: c += 2; numError(NUM_VAL, NOT_NUM, line); break;
@@ -407,39 +410,11 @@ void saveToMem(int addr, char *str, char *line) {
       case 0: memory[addr].value = n; break;
       default: break;
     }
-
-    // // if (str[0] != '\"') compileError(WF_DQ, line); 
-    // char *dqPtr = strstr(str, "\"");
     
-    // // 쌍따옴표가 존재함
-    // if (dqPtr) {
-    //   char *end = strstr(dqPtr + 1, "\"");
-    //   if (end) {
-    //     *end = '\0';
-    //     int val = atoi(dqPtr + 1);
-
-    //     bool nonNumeric = !val && strcmp(dqPtr + 1, "0");
-    //     bool overflow = val < MIN_SINT || val > MAX_SINT;
-    //     c += 2;
-
-    //     // 적절치 않은 operand
-    //     if (overflow) numError(NUM_VAL, OVFL, line);
-    //     if (nonNumeric) numError(NUM_VAL, NOT_NUM, line);
-
-    //     memory[addr].value = val;
-    //   }
-    //   else {
-    //     c += 1 + strlen(str);
-    //     // compileError(WF_DQ, line);
-    //   }
-    // }
-
-    // 존재하는 Type 이 아님
-
-    // 쌍따옴표가 존재하지 않음
-    // else compileError(WF_DQ, line);
+    return;
   }
-  else if (!toType(str)) compileError(NO_OPR, line);
+  if (!toType(str)) compileError(NO_OPR, line);
+  
 }
 
 Type toType(char *str) {
@@ -531,7 +506,7 @@ void inputError(NumErrorType type) {
   }
 
   strcpy(msg, "Input error");
-  strcat(desc, "\n\n\033[0;36m");
+  strcat(desc, "\n\n\033[0;32m");
   sprintf(desc, "%s Enter value %d ~ %d integer", desc, MIN_SINT, MAX_SINT);
 
   visError(msg, desc);
@@ -559,11 +534,11 @@ void compileError(CompileErrorType type, char *line) {
       );
       break;
     case WF_COLON: 
-      strcpy(msg, "Wrong input format"); 
+      strcpy(msg, "Wrong format"); 
       strcpy(desc, ":"); 
       break;
     case WF_DQ: 
-      strcpy(msg, "Wrong input format"); 
+      strcpy(msg, "Wrong format"); 
       strcpy(desc, "\""); 
       break;
     default: break;
@@ -662,11 +637,14 @@ int move(int cur, int md, int ms) {
   return cur + 1;
 }
 int load(int cur, int md, int ms) { 
-  memory[memory[md].value].value = memory[memory[ms].value].value; 
+  // memory[memory[md].value].value = memory[memory[ms].value].value; 
+  memory[md].value = memory[memory[ms].value].value; 
   return cur + 1;
 }
 int store(int cur, int md, int ms) { 
-  memory[memory[ms].value].value = memory[memory[md].value].value; 
+  memory[memory[md].value].value = memory[ms].value; 
+  // memory[memory[ms].value].value = memory[memory[md].value].value; 
+  // memory[memory[ms].value].value = memory[memory[md].value].value; 
   return cur + 1;
 }
 int add(int cur, int md, int mx, int my) { 
