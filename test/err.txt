@@ -1,0 +1,18 @@
+a: ADD 1 2 3       // error: Non-numeric address
+-1: ADD 1 2 3      // error: Address overflow
+0 ADD 1 2 3        // error: Wrong format
+1: AD 1 2 3        // error: Operator undefined
+2: AD              // error: Operator undefined
+3: ADD 1 2         // error: Unmatched number of operand
+4: ADD 1 2 3 3     // error: Unmatched number of operand
+5: TERM 1          // error: Unmatched number of operand
+6: LOAD 256 2      // error: Operand overflow
+7: LOAD 1 -1       // error: Operand overflow
+8: ASSIGN 1 2      // error: Wrong format
+9: ASSIGN 1 "2     // error: Wrong format
+10: ASSIGN 1 "128" // error: Constant overflow
+11: ASSIGN 1 "a"   // error: Non-numeric constant
+12: 3              // error: Wrong format
+13: "3             // error: Wrong format
+14: "a"            // error: Non-numeric value
+15: MOD 1 2 3      // error: Divided by zero

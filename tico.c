@@ -1,12 +1,11 @@
 /* VIDEO LINK */
-// https://www.youtube.com/watch?v=Tr99lyyMJTU
+// https://www.youtube.com/watch?v=D8M03FNB2K4&ab_channel=sjh
 
 /* TEAM MEMBER */
 // Kim Hongchan (21700214)
 // Hyeon Seungjoon (21800788)
 
 /* PREPROCESSORS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,10 +18,9 @@
 #define MAX_UCHR 255    // maximum of unsigned char
 #define MIN_UCHR 0      // minimum of unsigned char
 #define MEM_SIZ 256     // size of memory
-#define MEM_VIS 81      // memory range to visualize
+#define MEM_VIS 80      // memory range to visualize
 
 /* ENUMS */
-
 typedef enum { 
   NO_OPR, OPD_NUM, 
   WF_COLON, WF_DQ,
@@ -78,7 +76,7 @@ void numError(CompileErrorType cType, NumErrorType nType, char *line);
 void visError(char *msg, char *desc);
 void visCompileError(char *msg, char *desc, char *line);
 
-/* INSTRUCTION FUNCTIONS */
+// Instruction functions
 int read   (int cur, int m);
 int write  (int cur, int m);
 
@@ -107,12 +105,14 @@ char *filename;
 Type curType;
 int r = 0, c = 1;
 
+// operator type string array
 const char *instStrs[TYPE_LEN] = {
   0x0, "READ", "WRITE", "ASSIGN", "MOVE", "LOAD", 
   "STORE", "ADD", "MINUS", "MULT", "MOD", 
   "EQ", "LESS", "JUMP", "JUMPIF", "TERM",
 };
 
+// Number of operands in each operator
 const int params[TYPE_LEN] = {
 -1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 1, 2, 0,
 };
@@ -163,10 +163,10 @@ int main(int argc, char *argv[]) {
     while (1) {
       cur = execute(cur);
       if (cur == -1) break;
+      if (cur >= MEM_SIZ) break;
     }
   }
 
-  // visMem();
   printf("\n\nProgram terminated!\nGOOD BYE!\n\n");
 
   free(filename);
@@ -174,8 +174,16 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
+/// @brief Calculates the number of digits in a given integer 
+///        when it is converted to a string
+/// @param i The integer to calculate the number of digits for
+/// @return The number of digits in the integer as an integer value
 int intlen(int i) { return 1 + (i ? (int) log10(i) : 1); }
 
+/// @brief Extracts the first integer found in a given character 
+///        string and returns its integer value
+/// @param str The character string to search for the first integer
+/// @return The integer value of the first integer found in the character string
 int extractNumber(char *str) {
   char numStr[10];
   int count = 1, first;
@@ -198,6 +206,16 @@ int extractNumber(char *str) {
 // 2: " not closed
 // 3: non numeric
 // 4: overflow
+
+/// @brief Converts a string representation of an integer within double
+///        quotes to an integer value, and checks if it falls within
+///        a specified range
+/// @param str The string containing the integer within double quotes
+/// @param num A pointer to an integer where the parsed integer value
+///            will be store
+/// @param min The minimum allowed value for the integer
+/// @param max The maximum allowed value for the integer
+/// @return An integer value indicating success (0) or an error code (1-4)
 int ctoi(char *str, int *num, int min, int max) {
   *num = extractNumber(str);
 
@@ -214,7 +232,12 @@ int ctoi(char *str, int *num, int min, int max) {
   return 0;
 }
 
-
+/// @brief Reads a line from a file pointed to by the 
+///        global variable fp, dynamically allocating memory 
+///         as needed to store the line
+/// @return A pointer to a dynamically allocated string 
+///         containing the read line, or a null pointer 
+///         if the end of the file is reached
 char *readLine() {
   static char buf[BUFSIZ];
   static int buf_n = 0;
@@ -250,6 +273,9 @@ char *readLine() {
   return s;
 }
 
+/// @brief Initializes the global memory array by setting 
+///        all values to zero and setting each instruction 
+///        to a value operator with no operands
 void initMem() {
   for (int addr = 0; addr < MEM_SIZ; addr++) {
     memory[addr].value = 0;
@@ -259,6 +285,7 @@ void initMem() {
   }
 }
 
+/// @brief Visualize a formatted table of the contents of the memory
 void visMem() {
   printf("\n┏");
   for (int i = 0; i < 63; i++) printf("━"); printf("┓");
@@ -295,6 +322,8 @@ void visMem() {
   for (int i = 0; i < 31; i++) printf("━"); printf("┛\n\n");
 }
 
+/// @brief Ignores inline comments from a given string
+/// @param line The input string to be processed
 void ignoreComment(char *line) { 
   char *ptr = strstr(line, "//"); 
   if (ptr) *ptr = '\0'; 
@@ -302,9 +331,9 @@ void ignoreComment(char *line) {
 
 /// @brief Splits a string containing an address and an instruction
 ///        separated by a colon into its address and instruction components
-/// @param str  : the string to be split
-/// @param addr : a pointer to an integer that will hold the parsed address
-/// @param inst : a pointer to a char pointer that will point to the parsed instruction
+/// @param str  the string to be split
+/// @param addr a pointer to an integer that will hold the parsed address
+/// @param inst a pointer to a char pointer that will point to the parsed instruction
 void splitAdrInst(char *str, int *addr, char **inst) {
   char *line; 
   char *colonPtr, *addrPtr, *instPtr, *endPtr;
@@ -335,6 +364,11 @@ void splitAdrInst(char *str, int *addr, char **inst) {
   *inst = instPtr;
 }
 
+/// @brief A function that saves str into the memory 
+///        at the addr position after processing it appropriately
+/// @param addr specific memory address to save
+/// @param str  assembly code information to process
+/// @param line pure line from the file
 void saveToMem(int addr, char *str, char *line) {
   bool hasSpace = strchr(str, ' ');
 
@@ -418,12 +452,19 @@ void saveToMem(int addr, char *str, char *line) {
   
 }
 
+/// @brief Converts a string to a Type enumeration value
+/// @param str The string to convert
+/// @return The Type value corresponding to the input string
 Type toType(char *str) {
   for (int i = 1; i < TYPE_LEN; i++)
     if (!strcmp(instStrs[i], str)) return i;
   return VALUE;
 }
 
+/// @brief Executes the instruction at the given memory address
+/// @param addr The memory address of the instruction to execute
+/// @return The address of the next instruction to execute, 
+///         or a negative value if an error occurred.
 int execute(int addr) {
   Instruction inst = memory[addr].inst;
   if (!inst.operator) return addr + 1;
@@ -454,6 +495,9 @@ int execute(int addr) {
   return -2;
 }
 
+/// @brief Reads user input and validates it, 
+///        returning a valid input as an integer.
+/// @return A valid input as an integer.
 int ticoInput() {
   int n; 
   bool overflow = false;
@@ -476,13 +520,15 @@ int ticoInput() {
   return n;
 }
 
+/// @brief Outputs an integer value to the console
+/// @param n The integer value to output
 void ticoOutput(int n) {
   if (!optCount) printf("\n  << OUTPUT >>\n  ");
   printf("%d", n); optCount++;
 }
 
 
-
+/// @brief This function is called in case of file I/O errors
 void fileIOError() {
   char *msg = malloc(100);
   char *desc = malloc(100);
@@ -506,6 +552,8 @@ void fileIOError() {
   exit(-1);
 }
 
+/// @brief Displays an error message for invalid input
+/// @param type The type of error encountered
 void inputError(NumErrorType type) {
   char *msg = malloc(100);
   char *desc = malloc(100);
@@ -526,6 +574,9 @@ void inputError(NumErrorType type) {
   free(desc);
 }
 
+/// @brief  Generates a compile error message and displays it
+/// @param type The type of compile error that occurred
+/// @param line The line of code that caused the error
 void compileError(CompileErrorType type, char *line) {
   char *msg = malloc(100);
   char *desc = malloc(100);
@@ -562,6 +613,10 @@ void compileError(CompileErrorType type, char *line) {
   exit(-1);
 }
 
+/// @brief Report a numeric error and terminate the program
+/// @param cType The type of numeric object that caused the error
+/// @param nType The type of numeric error that occurred
+/// @param line  The line of source code where the error occurred
 void numError(CompileErrorType cType, NumErrorType nType, char *line) {
   int min, max;
   char *obj = malloc(100);
@@ -608,6 +663,10 @@ void numError(CompileErrorType cType, NumErrorType nType, char *line) {
   exit(-1);
 }
 
+/// @brief Displays an error message and its description on
+///        the console in red color
+/// @param msg The error message to be displayed
+/// @param desc The description of the error to be displayed
 void visError(char *msg, char *desc) {
   fprintf(stderr, "\033[0;31m");
   fprintf(stderr, "\n  [ERROR] %s", msg);
@@ -615,6 +674,12 @@ void visError(char *msg, char *desc) {
   fprintf(stderr, "\033[0m");
 }
 
+/// @brief Prints a compile error message with additional 
+///        information about the error location and code 
+///        line where it occurred
+/// @param msg The error message to be displayed
+/// @param desc The description of the error to be displayed
+/// @param line The code line where the error occurred
 void visCompileError(char *msg, char *desc, char *line) {
   fprintf(stderr, "\033[0;31m");
   fprintf(stderr, "\n  [ERROR] Compile error");
