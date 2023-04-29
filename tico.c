@@ -1,3 +1,12 @@
+/* VIDEO LINK */
+// https://www.youtube.com/watch?v=Tr99lyyMJTU
+
+/* TEAM MEMBER */
+// Kim Hongchan (21700214)
+// Hyeon Seungjoon (21800788)
+
+/* PREPROCESSORS */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,14 +14,15 @@
 #include <stdbool.h>
 #include <math.h>
 
-#define MAX_SINT 127
-#define MIN_SINT -128
-#define MAX_UINT 255
-#define MIN_UINT 0
-#define MEM_SIZ 256
-#define MEM_VIS 32
+#define MAX_SCHR 127    // maximum of signed char
+#define MIN_SCHR -128   // minimum of signed char
+#define MAX_UCHR 255    // maximum of unsigned char
+#define MIN_UCHR 0      // minimum of unsigned char
+#define MEM_SIZ 256     // size of memory
+#define MEM_VIS 81      // memory range to visualize
 
 /* ENUMS */
+
 typedef enum { 
   NO_OPR, OPD_NUM, 
   WF_COLON, WF_DQ,
@@ -20,7 +30,7 @@ typedef enum {
 } CompileErrorType;
 
 typedef enum {
-  OVFL, NOT_NUM
+  OVFL, NOT_NUM, DIV_ZERO
 } NumErrorType;
 
 typedef enum { VALUE,  
@@ -104,10 +114,10 @@ const char *instStrs[TYPE_LEN] = {
 };
 
 const int params[TYPE_LEN] = {
-  -1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 1, 2, 0,
+-1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 1, 2, 0,
 };
 
-int main() {
+int main(int argc, char *argv[]) {
   filename = malloc(100);
   
   printf("\nProgram starts ...");
@@ -117,11 +127,11 @@ int main() {
   printf("\n  *  TICO: TIny COmputer  *");
   printf("\n  *************************");
   printf("\n");
-  printf("\n  Enter the name of the executable file");
-  printf("\n  > ");
   printf("\033[0m");
-  scanf("%[^\n]", filename);
   
+  if (argc != 2) fileIOError();
+  else strcpy(filename, argv[1]);
+
   if (!(fp = fopen(filename, "r"))) fileIOError();
   else {
     initMem();
@@ -147,16 +157,16 @@ int main() {
     printf("\033[0m");
     printf("\n\n");
 
-    visMem();
+    // visMem();
 
     int cur = 0;
-    for (int i = 0; i < MEM_SIZ; i++) {
+    while (1) {
       cur = execute(cur);
       if (cur == -1) break;
     }
   }
 
-  visMem();
+  // visMem();
   printf("\n\nProgram terminated!\nGOOD BYE!\n\n");
 
   free(filename);
@@ -317,7 +327,7 @@ void splitAdrInst(char *str, int *addr, char **inst) {
   *addr = atoi(addrPtr);
 
   bool nonNumeric = !*addr && strcmp(addrPtr, "0");
-  bool overflow = *addr < MIN_UINT || *addr > MAX_UINT;
+  bool overflow = *addr < MIN_UCHR || *addr > MAX_UCHR;
   
   if (overflow) numError(NUM_ADR, NOT_NUM, line);
   if (nonNumeric) numError(NUM_ADR, OVFL, line);
@@ -333,7 +343,6 @@ void saveToMem(int addr, char *str, char *line) {
   curType = toType(typeStr);
   c += 1 + intlen(addr);
 
-  // 존재하지 않는 Type 일 경우
   bool noOperator = true;
   noOperator &= strcmp(typeStr, "VALUE");
   noOperator &= !curType;
@@ -344,13 +353,9 @@ void saveToMem(int addr, char *str, char *line) {
   bool isTerm = !strcmp(str, "TERM");
   bool isAssign = !strcmp(str, "ASSIGN");
 
-  // printf("<%d>\n", instStrs[memory[addr].inst.operator]);
-
-  // operator 뒤 공백이 있음
   if (hasSpace) {
     c += 1 + strlen(typeStr);
     
-    // operator 가 TERM 임 -> ERROR
     if (isTerm) compileError(OPD_NUM, line);
     char *token = strtok(NULL, " ");
 
@@ -359,7 +364,7 @@ void saveToMem(int addr, char *str, char *line) {
       if (!token) break;
       
       if (isAssign && i == 1) {
-        int err = ctoi(token, &operand, MIN_SINT, MAX_SINT);
+        int err = ctoi(token, &operand, MIN_SCHR, MAX_SCHR);
 
         switch (err) {
           case 4: c += 2; numError(NUM_ASN, OVFL, line);
@@ -374,9 +379,8 @@ void saveToMem(int addr, char *str, char *line) {
         operand = atoi(token);
 
         bool nonNumeric = !operand && strcmp(token, "0");
-        bool overflow = operand < MIN_UINT || operand > MAX_UINT;
+        bool overflow = operand < MIN_UCHR || operand > MAX_UCHR;
 
-        // 적절치 않은 operand
         if (overflow) numError(NUM_OPD, OVFL, line);
         if (nonNumeric) numError(NUM_OPD, NOT_NUM, line);
 
@@ -387,21 +391,18 @@ void saveToMem(int addr, char *str, char *line) {
 
       token = strtok(NULL, " ");
 
-      // operand 가 지정값보다 많음
       if (token && i + 1 >= params[curType]) compileError(OPD_NUM, line);
     }
     
-    // operand 가 지정값보다 적음
     if (i < params[curType]) compileError(OPD_NUM, line);
 
     memory[addr].inst.operator = curType;
   }
-  // operator 뒤 공백이 없음
   else {
     if (isTerm) { memory[addr].inst.operator = TERM; return; }
     
     int n, err;
-    err = ctoi(str, &n, MIN_UINT, MAX_UINT);
+    err = ctoi(str, &n, MIN_UCHR, MAX_UCHR);
     switch (err) {
       case 4: numError(NUM_VAL, OVFL, line); break;
       case 3: c += 2; numError(NUM_VAL, NOT_NUM, line); break;
@@ -462,14 +463,14 @@ int ticoInput() {
   do {
     if (overflow) inputError(OVFL);
     if (nonNumeric) inputError(NOT_NUM);
-    
+
     overflow = false;
     nonNumeric = false;
 
     printf("  %d > ", iptCount); 
     nonNumeric |= !scanf("%d", &n);
     while (getchar() != '\n');
-    overflow |= n < MIN_SINT || n > MAX_SINT;
+    overflow |= n < MIN_SCHR || n > MAX_SCHR;
   } while (nonNumeric || overflow);
 
   return n;
@@ -486,16 +487,23 @@ void fileIOError() {
   char *msg = malloc(100);
   char *desc = malloc(100);
 
-  strcpy(msg, "File not found");
-  strcpy(desc, "\033[1;31m");
-  strcat(desc, filename);
-  strcat(desc, "\033[0;31m");
-  sprintf(desc, "%s file does not exist!", desc);
+  if (strcmp(filename, "")) {
+    strcpy(msg, "File not found");
+    strcpy(desc, "`\033[1;31m");
+    strcat(desc, filename);
+    strcat(desc, "\033[0;31m`");
+    sprintf(desc, "%s file does not exist!", desc);
+  }
+  else {
+    strcpy(msg, "Filename not entered");
+    strcpy(desc, "Enter the filename");
+  }
 
   visError(msg, desc);
 
   free(msg);
   free(desc);
+  exit(-1);
 }
 
 void inputError(NumErrorType type) {
@@ -510,7 +518,7 @@ void inputError(NumErrorType type) {
 
   strcpy(msg, "Input error");
   strcat(desc, "\n\n\033[0;32m");
-  sprintf(desc, "%s Enter value %d ~ %d integer", desc, MIN_SINT, MAX_SINT);
+  sprintf(desc, "%s Enter value %d ~ %d integer", desc, MIN_SCHR, MAX_SCHR);
 
   visError(msg, desc);
 
@@ -562,16 +570,16 @@ void numError(CompileErrorType cType, NumErrorType nType, char *line) {
   
   switch (cType) {
     case NUM_ASN: 
-      min = MIN_SINT; max = MAX_SINT; 
+      min = MIN_SCHR; max = MAX_SCHR; 
       strcpy(obj, "Constant"); break;
     case NUM_VAL: 
-      min = MIN_SINT; max = MAX_SINT; 
+      min = MIN_SCHR; max = MAX_SCHR; 
       strcpy(obj, "Value"); break;
     case NUM_ADR: 
-      min = MIN_UINT; max = MAX_UINT; 
+      min = MIN_UCHR; max = MAX_UCHR; 
       strcpy(obj, "Address"); break;
     case NUM_OPD: 
-      min = MIN_UINT; max = MAX_UINT; 
+      min = MIN_UCHR; max = MAX_UCHR; 
       strcpy(obj, "Operand"); break;
     default: break;
   }
@@ -584,6 +592,10 @@ void numError(CompileErrorType cType, NumErrorType nType, char *line) {
     case NOT_NUM: 
       sprintf(msg, "Non-numeric %s", obj); 
       sprintf(desc, "Set %s %d ~ %d integer", obj, min, max);
+      break;
+    case DIV_ZERO: 
+      strcpy(msg, "Divide by zero"); 
+      strcpy(desc, "Cannot be divided by 0");
       break;
     default: break;
   }
@@ -607,18 +619,20 @@ void visCompileError(char *msg, char *desc, char *line) {
   fprintf(stderr, "\033[0;31m");
   fprintf(stderr, "\n  [ERROR] Compile error");
   fprintf(stderr, "\n  %s", msg);
-  fprintf(stderr, "\033[0m");
+  fprintf(stderr, "\033[0m\n\n");
 
-  fprintf(stderr, "\033[1;37m");
-  fprintf(stderr, "\n\n  %s:%d:%d", filename, r, c);
-  fprintf(stderr, "\033[0m");
-  fprintf(stderr, "\n  %s\n  ", line);
-  
-  fprintf(stderr, "\033[0;32m");
-  for (int e = 0; e < c - 1; e++) fprintf(stderr, "~"); fprintf(stderr, "^\n");
-  for (int e = 0; e < c - 1; e++) fprintf(stderr, " ");
-  fprintf(stderr, "  %s\n\n", desc);
-  fprintf(stderr, "\033[0m");
+  if (line) {
+    fprintf(stderr, "\033[1;37m");
+    fprintf(stderr, "  %s:%d:%d", filename, r, c);
+    fprintf(stderr, "\033[0m");
+    fprintf(stderr, "\n  %s\n  ", line);
+    
+    fprintf(stderr, "\033[0;32m");
+    for (int e = 0; e < c - 1; e++) fprintf(stderr, "~"); fprintf(stderr, "^\n");
+    for (int e = 0; e < c - 1; e++) fprintf(stderr, " ");
+    fprintf(stderr, "  %s\n\n", desc);
+    fprintf(stderr, "\033[0m");
+  }
 }
 
 
@@ -640,14 +654,13 @@ int move(int cur, int md, int ms) {
   return cur + 1;
 }
 int load(int cur, int md, int ms) { 
-  // memory[memory[md].value].value = memory[memory[ms].value].value; 
+  if (memory[ms].value < MIN_UCHR) numError(NUM_VAL, OVFL, 0x0);
   memory[md].value = memory[memory[ms].value].value; 
   return cur + 1;
 }
 int store(int cur, int md, int ms) { 
+  if (memory[md].value < MIN_UCHR) numError(NUM_VAL, OVFL, 0x0);
   memory[memory[md].value].value = memory[ms].value; 
-  // memory[memory[ms].value].value = memory[memory[md].value].value; 
-  // memory[memory[ms].value].value = memory[memory[md].value].value; 
   return cur + 1;
 }
 int add(int cur, int md, int mx, int my) { 
@@ -663,6 +676,7 @@ int mult(int cur, int md, int mx, int my) {
   return cur + 1;
 }
 int mod(int cur, int md, int mx, int my) { 
+  if (!memory[my].value) numError(NUM_VAL, DIV_ZERO, 0x0);
   memory[md].value = memory[mx].value % memory[my].value; 
   return cur + 1;
 }
